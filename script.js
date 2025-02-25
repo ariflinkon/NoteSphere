@@ -10,8 +10,8 @@ class NoteApp {
         UI.setupEventListeners(this);
     }
 
-    addNote(content) {
-        const note = new Note(Date.now(), content);
+    addNote(title, description) {
+        const note = new Note(Date.now(), title, description);
         this.notes.push(note);
         Storage.saveNotes(this.notes);
         UI.renderNotes(this.notes);
@@ -26,9 +26,10 @@ class NoteApp {
 
 // 2. Note Model
 class Note {
-    constructor(id, content) {
+    constructor(id, title, description) {
         this.id = id;
-        this.content = content;
+        this.title = title;
+        this.description = description;
         this.timestamp = new Date().toLocaleString();
     }
 }
@@ -39,7 +40,8 @@ const UI = {
         const notesContainer = document.getElementById("notes-container");
         notesContainer.innerHTML = notes.map(note => `
             <div class="note" data-id="${note.id}">
-                <p>${note.content}</p>
+                <h5>${note.title}</h5>
+                <p>${note.description}</p>
                 <small>${note.timestamp}</small>
                 <button class="delete-btn">Delete</button>
             </div>
@@ -48,10 +50,12 @@ const UI = {
 
     setupEventListeners(app) {
         document.getElementById("add-note-btn").addEventListener("click", () => {
-            const input = document.getElementById("note-input");
-            if (input.value.trim()) {
-                app.addNote(input.value);
-                input.value = ""; // Clear input
+            const titleInput = document.getElementById("note-title-input");
+            const descriptionInput = document.getElementById("note-description-input");
+            if (titleInput.value.trim() && descriptionInput.value.trim()) {
+                app.addNote(titleInput.value, descriptionInput.value);
+                titleInput.value = ""; // Clear title input
+                descriptionInput.value = ""; // Clear description input
             }
         });
 
