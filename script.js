@@ -1,30 +1,33 @@
-// 1. Main Application Logic
+// NoteApp.js
 class NoteApp {
     constructor() {
-        this.notes = Storage.getNotes(); // Load notes from local storage
-        this.initUI(); // Initialize UI components
+        this.notes = NoteStorage.load();
+        this.init();
     }
 
-    initUI() {
-        UI.renderNotes(this.notes);
-        UI.setupEventListeners(this);
+    init() {
+        NoteUI.display(this.notes);
+        NoteUI.bindEvents({
+            onAdd: (title, description) => this.addNote(title, description),
+            onDelete: (id) => this.deleteNote(id)
+        });
     }
 
     addNote(title, description) {
         const note = new Note(Date.now(), title, description);
-        this.notes.unshift(note); // Add to beginning for latest on top
-        Storage.saveNotes(this.notes);
-        UI.renderNotes(this.notes);
+        this.notes.unshift(note);
+        NoteStorage.save(this.notes);
+        NoteUI.display(this.notes);
     }
 
     deleteNote(id) {
         this.notes = this.notes.filter(note => note.id !== id);
-        Storage.saveNotes(this.notes);
-        UI.renderNotes(this.notes);
+        NoteStorage.save(this.notes);
+        NoteUI.display(this.notes);
     }
 }
 
-// 2. Note Model
+// Note.js
 class Note {
     constructor(id, title, description) {
         this.id = id;
@@ -34,11 +37,14 @@ class Note {
     }
 }
 
-// 3. UI Handling
-const UI = {
-    renderNotes(notes) {
-        const notesContainer = document.getElementById("notes-container");
-        notesContainer.innerHTML = notes.map(note => `
+// NoteUI.js
+const NoteUI = (() => {
+    const titleInput = () => document.getElementById("note-title-input");
+    const descriptionInput = () => document.getElementById("note-description-input");
+    const notesContainer = () => document.getElementById("notes-container");
+
+    function display(notes) {
+        notesContainer().innerHTML = notes.map(note => `
             <div class="col-md-6">
                 <div class="card note-card h-100 shadow-sm" data-id="${note.id}">
                     <div class="card-body">
@@ -47,52 +53,49 @@ const UI = {
                     </div>
                     <div class="card-footer d-flex justify-content-between align-items-center">
                         <small class="text-muted">${note.timestamp}</small>
-                        <button class="btn btn-sm btn-outline-danger delete-btn">
+                        <button class="btn btn-sm btn-outline-danger delete-btn" data-action="delete">
                             <i class="bi bi-trash"></i>
                         </button>
                     </div>
                 </div>
             </div>
         `).join("");
-    },
+    }
 
-    setupEventListeners(app) {
+    function bindEvents({ onAdd, onDelete }) {
         document.getElementById("add-note-btn").addEventListener("click", () => {
-            const titleInput = document.getElementById("note-title-input");
-            const descriptionInput = document.getElementById("note-description-input");
-
-            const title = titleInput.value.trim();
-            const description = descriptionInput.value.trim();
-
+            const title = titleInput().value.trim();
+            const description = descriptionInput().value.trim();
             if (title && description) {
-                app.addNote(title, description);
-                titleInput.value = "";
-                descriptionInput.value = "";
+                onAdd(title, description);
+                titleInput().value = "";
+                descriptionInput().value = "";
             }
         });
 
-        document.getElementById("notes-container").addEventListener("click", (event) => {
-            if (event.target.closest(".delete-btn")) {
-                const noteCard = event.target.closest(".note-card");
-                const noteId = Number(noteCard.dataset.id);
-                app.deleteNote(noteId);
+        notesContainer().addEventListener("click", (e) => {
+            if (e.target.closest("[data-action='delete']")) {
+                const card = e.target.closest(".note-card");
+                const id = Number(card.dataset.id);
+                onDelete(id);
             }
         });
     }
-};
 
-// 4. Local Storage Handling
-const Storage = {
-    getNotes() {
+    return { display, bindEvents };
+})();
+
+// NoteStorage.js
+const NoteStorage = {
+    load() {
         return JSON.parse(localStorage.getItem("notes")) || [];
     },
-
-    saveNotes(notes) {
+    save(notes) {
         localStorage.setItem("notes", JSON.stringify(notes));
     }
 };
 
-// 5. Initialize Application
+// Entry point
 document.addEventListener("DOMContentLoaded", () => {
     new NoteApp();
 });
